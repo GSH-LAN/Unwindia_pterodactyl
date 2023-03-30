@@ -5,7 +5,7 @@ go 1.20
 replace github.com/ThreeDotsLabs/watermill-pulsar => github.com/MaxW1337/watermill-pulsar v0.0.0-20221124180151-6e4a9166181d
 
 require (
-	github.com/GSH-LAN/Unwindia_common v0.0.6
+	github.com/GSH-LAN/Unwindia_common v0.0.7
 	github.com/ThreeDotsLabs/watermill v1.2.0
 	github.com/ThreeDotsLabs/watermill-pulsar v0.0.0-00010101000000-000000000000
 	github.com/alexliesenfeld/health v0.6.0
@@ -39,9 +39,11 @@ require (
 	github.com/bytedance/sonic v1.8.5 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
+	github.com/forewing/csgo-rcon v1.3.1-0.20220429151413-081f8216b783 // indirect
 	github.com/frankban/quicktest v1.14.4 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gammazero/deque v0.2.1 // indirect

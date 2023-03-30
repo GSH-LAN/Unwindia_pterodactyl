@@ -140,7 +140,6 @@ func (c *ClientImpl) fetchPteroStuff() {
 	}
 
 	c.pteroServers = serverLockList
-
 }
 
 func (c *ClientImpl) checkInstallStateAndSusped() {

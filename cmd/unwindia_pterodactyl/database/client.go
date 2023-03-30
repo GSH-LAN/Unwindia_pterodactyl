@@ -30,6 +30,7 @@ type DatabaseClient interface {
 	//List(ctx context.Context, filter interface{}, resultChan chan Result)
 	List(ctx context.Context, filter interface{}) ([]*Job, error)
 	GetMatchInfo(ctx context.Context, id string) (*MatchInfo, error)
+	GetMatchInfoForMatchId(ctx context.Context, id string) (*MatchInfo, error)
 }
 
 func NewClient(ctx context.Context, env *environment.Environment) (*DatabaseClientImpl, error) {
@@ -64,40 +65,10 @@ func NewClient(ctx context.Context, env *environment.Environment) (*DatabaseClie
 	return &dbClient, err
 }
 
-//func NewClientWithDatabase(ctx context.Context, db *mongo.Database) (*DatabaseClientImpl, error) {
-//
-//	dbClient := DatabaseClientImpl{
-//		ctx: ctx,
-//		//jobsCollection: db.Collection(CollectionName),
-//		jobsCollection: mgm.Coll(&Job{}),
-//	}
-//
-//	return &dbClient, nil
-//}
-
 type DatabaseClientImpl struct {
 	ctx             context.Context
 	jobsCollection  *mgm.Collection
 	matchCollection *mongo.Collection
-}
-
-func (d DatabaseClientImpl) GetMatchInfo(ctx context.Context, id string) (*MatchInfo, error) {
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	defer cancel()
-
-	filter := bson.D{{"_id", id}}
-	result := d.matchCollection.FindOne(ctx, filter)
-	if result.Err() != nil {
-		return nil, result.Err()
-	}
-
-	var entry MatchInfo
-	err := result.Decode(&entry)
-	if err != nil {
-		return nil, err
-	}
-
-	return &entry, nil
 }
 
 func (d DatabaseClientImpl) CreateJob(ctx context.Context, entry *Job) (primitive.ObjectID, error) {
@@ -179,4 +150,44 @@ func (d DatabaseClientImpl) List(ctx context.Context, filter interface{}) ([]*Jo
 	}
 
 	return jobs, nil
+}
+
+func (d DatabaseClientImpl) GetMatchInfo(ctx context.Context, id string) (*MatchInfo, error) {
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+
+	filter := bson.D{{"_id", id}}
+	result := d.matchCollection.FindOne(ctx, filter)
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	var entry MatchInfo
+	err := result.Decode(&entry)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entry, nil
+}
+
+func (d DatabaseClientImpl) GetMatchInfoForMatchId(ctx context.Context, id string) (*MatchInfo, error) {
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+
+	filter := bson.D{{"matchId", id}}
+	opts := options.FindOne().SetSort(bson.D{{"updatedAt", 1}})
+
+	result := d.matchCollection.FindOne(ctx, filter, opts)
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	var entry MatchInfo
+	err := result.Decode(&entry)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entry, nil
 }

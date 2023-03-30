@@ -13,6 +13,7 @@ import (
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/messagequeue"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/pterodactyl"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/router"
+	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/template"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
@@ -124,16 +125,16 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 
 	log.Info().Interface("match", match).Msg("Received match")
 
+	matchId := match.Id
+	if s.env.UseMatchServiceId {
+		matchId = match.MsID
+	}
+
 	// in this case we need to get a server for that match
 	// so we need to create a new job
 	var jobIds []primitive.ObjectID
 	if message.SubType == messagebroker.UNWINDIA_MATCH_READY_ALL.String() {
 		log.Info().Str("id", match.Id).Msg("Match is ready to get a server, creating job")
-
-		matchId := match.Id
-		if s.env.UseMatchServiceId {
-			matchId = match.MsID
-		}
 
 		job := database.Job{
 			Action:    database.ActionCreate,
@@ -160,11 +161,6 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 	// Match is done, we can delete/suspend the server after some waiting time
 	if message.SubType == messagebroker.UNWINDIA_MATCH_FINISHED.String() {
 		log.Info().Str("id", match.Id).Msg("Match is finished, creating delete job")
-
-		matchId := match.Id
-		if s.env.UseMatchServiceId {
-			matchId = match.MsID
-		}
 
 		// find existing matchinfo to determine server
 		existingMatchInfo, err := s.dbClient.GetMatchInfo(s.ctx, match.Id)
@@ -210,6 +206,7 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 	matchEntry := database.MatchInfo{
 		Id:        match.Id,
 		MatchInfo: match,
+		MatchId:   matchId,
 		JobIds:    jobIds,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -326,7 +323,37 @@ func (s *Server) handlePreinstall(ctx *gin.Context) {
 
 func (s *Server) handleMatchTemplate(ctx *gin.Context) {
 	matchid := ctx.Param("matchid")
-	template := ctx.Param("template")
+	templateName := ctx.Param("template")
 
-	log.Info().Str("matchid", matchid).Str("template", template).Msg("creating template for match")
+	matchInfo, err := s.dbClient.GetMatchInfoForMatchId(s.ctx, matchid)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting info for match")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	templateText, ok := s.config.GetConfig().Templates[fmt.Sprintf("PTERODACTYL_%s.gohtml", templateName)]
+	if !ok {
+		log.Error().Str("template", templateName).Msg("template not found")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Errorf("template %s not found", templateName),
+		})
+		return
+	}
+
+	parsedMatchTemplate, err := template.ParseTemplateForMatch(templateText, &matchInfo.MatchInfo)
+	if err != nil {
+		log.Error().Err(err).Msg("Error parsing template")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	log.Debug().Str("commentText", parsedMatchTemplate).Msg("parsed Template")
+
+	log.Info().Str("matchid", matchid).Str("template", templateName).Msg("creating template for match")
+
+	ctx.String(http.StatusOK, parsedMatchTemplate)
 }

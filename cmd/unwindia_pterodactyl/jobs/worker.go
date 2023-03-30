@@ -9,7 +9,9 @@ import (
 	"github.com/GSH-LAN/Unwindia_common/src/go/workitemLock"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/database"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/pterodactyl"
+	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/template"
 	"github.com/ThreeDotsLabs/watermill/message"
+	rcon "github.com/forewing/csgo-rcon"
 	"github.com/gammazero/workerpool"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/modern-go/reflect2"
@@ -167,6 +169,19 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 		if err != nil {
 			log.Error().Err(err).Str("jobid", job.ID.String()).Int("server.id", server.ID).Msg("Error updating job")
 			return err
+		}
+
+		rconClient := rcon.New(job.MatchInfo.ServerAddress, servermgmtpass, time.Second*10)
+		for _, command := range gsTemplate.ServerReadyRconCommands {
+			parsedCommand, err := template.ParseTemplateForMatch(command, &job.MatchInfo)
+			if err != nil {
+				log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", command).Msg("Error parsing rcon command template")
+			}
+			_, err = rconClient.Execute(parsedCommand)
+			if err != nil {
+				log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", parsedCommand).Str("address", job.MatchInfo.ServerAddress).Msg("Error executing rcon command")
+			}
+			time.Sleep(time.Second)
 		}
 
 		// We now need to publish to message queue
