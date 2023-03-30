@@ -172,17 +172,21 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 		}
 
 		rconClient := rcon.New(job.MatchInfo.ServerAddress, servermgmtpass, time.Second*10)
-		for _, command := range gsTemplate.ServerReadyRconCommands {
-			parsedCommand, err := template.ParseTemplateForMatch(command, &job.MatchInfo)
-			if err != nil {
-				log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", command).Msg("Error parsing rcon command template")
+		go func() {
+			time.Sleep(gsTemplate.ServerReadyRconWaitTime.Duration)
+
+			for _, command := range gsTemplate.ServerReadyRconCommands {
+				parsedCommand, err := template.ParseTemplateForMatch(command, &job.MatchInfo)
+				if err != nil {
+					log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", command).Msg("Error parsing rcon command template")
+				}
+				_, err = rconClient.Execute(parsedCommand)
+				if err != nil {
+					log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", parsedCommand).Str("address", job.MatchInfo.ServerAddress).Msg("Error executing rcon command")
+				}
+				time.Sleep(time.Second)
 			}
-			_, err = rconClient.Execute(parsedCommand)
-			if err != nil {
-				log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", parsedCommand).Str("address", job.MatchInfo.ServerAddress).Msg("Error executing rcon command")
-			}
-			time.Sleep(time.Second)
-		}
+		}()
 
 		// We now need to publish to message queue
 
