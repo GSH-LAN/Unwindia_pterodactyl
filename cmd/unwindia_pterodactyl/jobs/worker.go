@@ -137,7 +137,9 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 			Image:       gsTemplate.DefaultDockerImage,
 			SkipScripts: server.StartupDescriptor().SkipScripts,
 		}
-		err = w.pteroClient.ReuseExistingServer(server.ID, details, startup)
+
+		serverIdentifier := server.Identifier
+		err = w.pteroClient.ReuseExistingServer(server.ID, serverIdentifier, details, startup)
 		if err != nil {
 			log.Error().Err(err).Str("jobid", job.ID.String()).Int("server.id", server.ID).Msg("Error reusing server")
 			return err

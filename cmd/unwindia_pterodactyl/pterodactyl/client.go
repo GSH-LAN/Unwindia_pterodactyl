@@ -21,7 +21,7 @@ const (
 
 type Client interface {
 	GetBestFittingSuspendedServer(eggId int) (*crocgodyl.AppServer, error)
-	ReuseExistingServer(serverId int, serverDetails crocgodyl.ServerDetailsDescriptor, serverStartup crocgodyl.ServerStartupDescriptor) error
+	ReuseExistingServer(serverId int, serverIdentifier string, serverDetails crocgodyl.ServerDetailsDescriptor, serverStartup crocgodyl.ServerStartupDescriptor) error
 	CreateNewServer() (*crocgodyl.AppServer, error)
 	DeleteServer(serverId int) error
 	SuspendServer() error
@@ -85,7 +85,7 @@ func (c *ClientImpl) GetBestFittingSuspendedServer(eggId int) (*crocgodyl.AppSer
 	return nil, fmt.Errorf("no server found")
 }
 
-func (c *ClientImpl) ReuseExistingServer(serverId int, serverDetails crocgodyl.ServerDetailsDescriptor, serverStartup crocgodyl.ServerStartupDescriptor) error {
+func (c *ClientImpl) ReuseExistingServer(serverId int, serverIdentifier string, serverDetails crocgodyl.ServerDetailsDescriptor, serverStartup crocgodyl.ServerStartupDescriptor) error {
 	_, err := c.applicationClient.UpdateServerDetails(serverId, serverDetails)
 	if err != nil {
 		return err
@@ -97,6 +97,13 @@ func (c *ClientImpl) ReuseExistingServer(serverId int, serverDetails crocgodyl.S
 	//}
 
 	err = c.applicationClient.UnsuspendServer(serverId)
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(time.Millisecond * 500)
+
+	err = c.clientClient.SetServerPowerState(serverIdentifier, "start")
 	if err != nil {
 		return err
 	}
