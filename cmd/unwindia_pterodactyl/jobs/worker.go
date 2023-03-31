@@ -223,8 +223,16 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 
 	case database.ActionDelete:
 		if job.ExecAfter != nil && time.Now().After(*job.ExecAfter) || job.ExecAfter == nil {
-			err := w.pteroClient.DeleteServer(job.ServerId)
+			err := w.pteroClient.SuspendServer(job.ServerId)
 			if err != nil {
+				return err
+			}
+
+			job.Status = database.JobStatusFinished
+
+			_, err = w.db.UpdateJob(ctx, job)
+			if err != nil {
+				log.Error().Err(err).Str("jobid", job.ID.String()).Int("server.id", job.ServerId).Msg("Error updating job")
 				return err
 			}
 		}

@@ -165,23 +165,19 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 	if message.SubType == messagebroker.UNWINDIA_MATCH_FINISHED.String() {
 		log.Info().Str("id", match.Id).Msg("Match is finished, creating delete job")
 
-		// find existing matchinfo to determine server
-		existingMatchInfo, err := s.dbClient.GetMatchInfoForMatchId(s.ctx, match.Id)
+		existingJob, err := s.dbClient.GetLastJobForMatchId(s.ctx, matchId, database.ActionCreate)
 		if err != nil {
-			log.Error().Err(err).Str("id", match.Id).Msg("error finding exising matchinfo for delete job")
+			log.Error().Err(err).Str("matchId", matchId).Msg("error finding exising create job for deletion")
 			return
 		}
 
-		if len(existingMatchInfo.JobIds) == 0 {
-			log.Warn().Str("matchid", matchId).Msg("We got a delete job but didn't have a previous job for this!!!!!!!!!!!!!!!11111einself")
-			return
-		}
-
-		lastJobId := existingMatchInfo.JobIds[len(existingMatchInfo.JobIds)]
-		existingJob, err := s.dbClient.GetJob(s.ctx, lastJobId.String())
+		gsTemplate, err := s.config.GetGameServerTemplate(existingJob.Game)
+		var execAfter time.Time
 		if err != nil {
-			log.Error().Err(err).Str("id", match.Id).Str("lastJobId", lastJobId.String()).Msg("error finding previous job for delete job")
-			return
+			log.Error().Err(err).Str("matchId", matchId).Msg("error finding gameserver template for deletion")
+			execAfter = time.Now().Add(time.Minute * 5)
+		} else {
+			execAfter = time.Now().Add(gsTemplate.DeleteAfterDuration.Duration)
 		}
 
 		job := database.Job{
@@ -191,7 +187,7 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 			Game:      match.Game,
 			Slots:     int(match.PlayerAmount),
 			ServerId:  existingJob.ServerId,
-			ExecAfter: nil,
+			ExecAfter: &execAfter,
 			MatchInfo: matchservice.MatchInfo{},
 		}
 
@@ -202,7 +198,7 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 			return
 		}
 
-		jobIds = append(existingMatchInfo.JobIds, jobId)
+		jobIds = append(jobIds, jobId)
 
 		log.Debug().Str("jobId", jobId.String()).Str("id", match.Id).Msg("Created delete job for match")
 	}

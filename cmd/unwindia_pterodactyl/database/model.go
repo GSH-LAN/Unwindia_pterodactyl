@@ -13,7 +13,7 @@ type MatchInfo struct {
 	Id        string                 `bson:"_id" json:"id"`
 	MatchInfo matchservice.MatchInfo `bson:"matchInfo,omitempty"`
 	MatchId   string                 `bson:"matchId"`
-	JobIds    []primitive.ObjectID   `json:"jobId" bson:"jobIds,omitempty"`
+	JobIds    []primitive.ObjectID   `json:"jobIds" bson:"jobIds"`
 	CreatedAt time.Time              `bson:"createdAt,omitempty"`
 	UpdatedAt time.Time              `bson:"updatedAt,omitempty"`
 }

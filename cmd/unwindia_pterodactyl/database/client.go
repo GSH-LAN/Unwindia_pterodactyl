@@ -31,6 +31,7 @@ type DatabaseClient interface {
 	List(ctx context.Context, filter interface{}) ([]*Job, error)
 	GetMatchInfo(ctx context.Context, id string) (*MatchInfo, error)
 	GetMatchInfoForMatchId(ctx context.Context, id string) (*MatchInfo, error)
+	GetLastJobForMatchId(ctx context.Context, id string, action Action) (*Job, error)
 }
 
 func NewClient(ctx context.Context, env *environment.Environment) (*DatabaseClientImpl, error) {
@@ -184,6 +185,31 @@ func (d DatabaseClientImpl) GetMatchInfoForMatchId(ctx context.Context, id strin
 	}
 
 	var entry MatchInfo
+	err := result.Decode(&entry)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entry, nil
+}
+
+func (d DatabaseClientImpl) GetLastJobForMatchId(ctx context.Context, id string, action Action) (*Job, error) {
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+
+	filter := bson.D{{"$and", []interface{}{
+		bson.D{{"matchid", id}},
+		bson.D{{"action", action}},
+	}}}
+
+	opts := options.FindOne().SetSort(bson.D{{"updatedAt", 1}})
+
+	result := d.jobsCollection.FindOne(ctx, filter, opts)
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	var entry Job
 	err := result.Decode(&entry)
 	if err != nil {
 		return nil, err

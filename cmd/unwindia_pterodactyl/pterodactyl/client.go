@@ -24,7 +24,7 @@ type Client interface {
 	ReuseExistingServer(serverId int, serverIdentifier string, serverDetails crocgodyl.ServerDetailsDescriptor, serverStartup crocgodyl.ServerStartupDescriptor) error
 	CreateNewServer() (*crocgodyl.AppServer, error)
 	DeleteServer(serverId int) error
-	SuspendServer() error
+	SuspendServer(serverId int) error
 	PreinstallServer(gsTemplate *config.GamerServerConfigTemplate) (*crocgodyl.AppServer, error)
 	FindExistingServerForMatch(matchid string) (*crocgodyl.AppServer, error)
 	GetNodeAllocation(nodeId, allocationId int) (*crocgodyl.Allocation, error)
@@ -121,9 +121,14 @@ func (c *ClientImpl) DeleteServer(serverId int) error {
 	panic("implement me")
 }
 
-func (c *ClientImpl) SuspendServer() error {
-	//TODO implement me
-	panic("implement me")
+func (c *ClientImpl) SuspendServer(serverId int) error {
+	server, err := c.applicationClient.GetServer(serverId)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.suspendServer(server)
+	return err
 }
 
 // TODO: rename this
