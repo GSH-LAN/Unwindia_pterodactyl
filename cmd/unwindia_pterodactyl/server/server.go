@@ -166,7 +166,7 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 		log.Info().Str("id", match.Id).Msg("Match is finished, creating delete job")
 
 		// find existing matchinfo to determine server
-		existingMatchInfo, err := s.dbClient.GetMatchInfo(s.ctx, match.Id)
+		existingMatchInfo, err := s.dbClient.GetMatchInfoForMatchId(s.ctx, match.Id)
 		if err != nil {
 			log.Error().Err(err).Str("id", match.Id).Msg("error finding exising matchinfo for delete job")
 			return
