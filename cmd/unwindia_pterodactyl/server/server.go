@@ -136,6 +136,9 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 	if message.SubType == messagebroker.UNWINDIA_MATCH_READY_ALL.String() {
 		log.Info().Str("id", match.Id).Msg("Match is ready to get a server, creating job")
 
+		// TODO: stop hardcoding this shit
+		match.Ready = true
+
 		job := database.Job{
 			Action:    database.ActionCreate,
 			Status:    database.JobStatusNew,
