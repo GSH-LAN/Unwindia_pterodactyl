@@ -130,14 +130,14 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 		matchId = match.MsID
 	}
 
+	// TODO: stop hardcoding this shit
+	match.Ready = true
+
 	// in this case we need to get a server for that match
 	// so we need to create a new job
 	var jobIds []primitive.ObjectID
 	if message.SubType == messagebroker.UNWINDIA_MATCH_READY_ALL.String() {
 		log.Info().Str("id", match.Id).Msg("Match is ready to get a server, creating job")
-
-		// TODO: stop hardcoding this shit
-		match.Ready = true
 
 		job := database.Job{
 			Action:    database.ActionCreate,
@@ -177,9 +177,10 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 			return
 		}
 
-		existingJob, err := s.dbClient.GetJob(s.ctx, existingMatchInfo.JobIds[len(existingMatchInfo.JobIds)].String())
+		lastJobId := existingMatchInfo.JobIds[len(existingMatchInfo.JobIds)]
+		existingJob, err := s.dbClient.GetJob(s.ctx, lastJobId.String())
 		if err != nil {
-			log.Error().Err(err).Str("id", match.Id).Msg("error finding exising matchinfo for delete job")
+			log.Error().Err(err).Str("id", match.Id).Str("lastJobId", lastJobId.String()).Msg("error finding previous job for delete job")
 			return
 		}
 
