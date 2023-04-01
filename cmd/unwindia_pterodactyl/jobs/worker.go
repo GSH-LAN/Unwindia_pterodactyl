@@ -33,9 +33,10 @@ type Worker struct {
 	semaphore      *semaphore.Weighted
 	jobLock        workitemLock.WorkItemLock
 	config         config.ConfigClient
+	rconRetries    int
 }
 
-func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient) *Worker {
+func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient, rconRetries int) *Worker {
 	w := Worker{
 		ctx:            ctx,
 		db:             db,
@@ -45,6 +46,7 @@ func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool
 		semaphore:      semaphore.NewWeighted(int64(1)),
 		jobLock:        workitemLock.NewMemoryWorkItemLock(),
 		config:         config,
+		rconRetries:    rconRetries,
 	}
 	return &w
 }
@@ -178,15 +180,23 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 			time.Sleep(gsTemplate.ServerReadyRconWaitTime.Duration)
 
 			for _, command := range gsTemplate.ServerReadyRconCommands {
-				parsedCommand, err := template.ParseTemplateForMatch(command, &job.MatchInfo)
-				if err != nil {
-					log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", command).Msg("Error parsing rcon command template")
+				for i := 0; i < w.rconRetries; i++ {
+					parsedCommand, err := template.ParseTemplateForMatch(command, &job.MatchInfo)
+					if err != nil {
+						log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", command).Msg("Error parsing rcon command template")
+						continue
+					}
+
+					_, err = rconClient.Execute(parsedCommand)
+					if err != nil {
+						log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", parsedCommand).Str("address", job.MatchInfo.ServerAddress).Msg("Error executing rcon command")
+						continue
+					}
+
+					log.Debug().Str("command", parsedCommand).Msg("Successfully executed command")
+					time.Sleep(time.Second)
+					break
 				}
-				_, err = rconClient.Execute(parsedCommand)
-				if err != nil {
-					log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", parsedCommand).Str("address", job.MatchInfo.ServerAddress).Msg("Error executing rcon command")
-				}
-				time.Sleep(time.Second)
 			}
 		}()
 

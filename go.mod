@@ -7,7 +7,7 @@ replace github.com/ThreeDotsLabs/watermill-pulsar => github.com/MaxW1337/watermi
 replace github.com/parkervcp/crocgodyl => github.com/GSH-LAN/crocgodyl v0.1.1-0.20230331082235-e214fc410bc1
 
 require (
-	github.com/GSH-LAN/Unwindia_common v0.0.7
+	github.com/GSH-LAN/Unwindia_common v0.0.9
 	github.com/ThreeDotsLabs/watermill v1.2.0
 	github.com/ThreeDotsLabs/watermill-pulsar v0.0.0-00010101000000-000000000000
 	github.com/alexliesenfeld/health v0.6.0

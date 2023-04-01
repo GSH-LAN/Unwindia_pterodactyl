@@ -63,7 +63,7 @@ func NewServer(ctx context.Context, env *environment.Environment, cfgClient conf
 		return nil, err
 	}
 
-	jobHandler := jobs.NewWorker(ctx, dbClient, wp, pteroClient, matchPublisher, cfgClient)
+	jobHandler := jobs.NewWorker(ctx, dbClient, wp, pteroClient, matchPublisher, cfgClient, env.RconRetries)
 
 	srv := Server{
 		ctx:            ctx,

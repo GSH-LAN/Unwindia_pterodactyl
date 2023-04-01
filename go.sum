@@ -50,8 +50,8 @@ github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym
 github.com/DataDog/zstd v1.5.0/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
 github.com/DataDog/zstd v1.5.2 h1:vUG4lAyuPCXO0TLbXvPv7EB7cNK1QV/luu55UHLrrn8=
 github.com/DataDog/zstd v1.5.2/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
-github.com/GSH-LAN/Unwindia_common v0.0.7 h1:pY5AU+Xc9QUlASB2ObAe+CrBnH5z94P09Fq9wQt3N38=
-github.com/GSH-LAN/Unwindia_common v0.0.7/go.mod h1:FjV6kvx/PQRi63sV2TlOEhVmM7n82+qmyVTsjemMuVE=
+github.com/GSH-LAN/Unwindia_common v0.0.9 h1:buiA09V0FyBzgOB1fi5phLMnu/jQ1m+A8lPau5LfqJ4=
+github.com/GSH-LAN/Unwindia_common v0.0.9/go.mod h1:FjV6kvx/PQRi63sV2TlOEhVmM7n82+qmyVTsjemMuVE=
 github.com/GSH-LAN/crocgodyl v0.1.1-0.20230331082235-e214fc410bc1 h1:x0uwxC32a88g8s9Jax9U75I1uPecFk8p1Ai0/vmSerM=
 github.com/GSH-LAN/crocgodyl v0.1.1-0.20230331082235-e214fc410bc1/go.mod h1:qk4hX2hjVYiGXv1t9+fr0dyeAnuSVCotZtcRN58toUU=
 github.com/MaxW1337/watermill-pulsar v0.0.0-20221124180151-6e4a9166181d h1:hAP9kq9o6CNv/5hTeNIIoUJ8eSakasCfxJnjYv2ybTE=
