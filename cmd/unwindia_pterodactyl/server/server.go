@@ -199,6 +199,7 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 		}
 
 		jobIds = append(jobIds, jobId)
+		match.Finished = true
 
 		log.Debug().Str("jobId", jobId.String()).Str("id", match.Id).Msg("Created delete job for match")
 	}
