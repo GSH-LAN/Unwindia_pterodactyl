@@ -34,9 +34,10 @@ type Worker struct {
 	jobLock        workitemLock.WorkItemLock
 	config         config.ConfigClient
 	rconRetries    int
+	baseTopic      string
 }
 
-func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient, rconRetries int) *Worker {
+func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient, rconRetries int, baseTopic string) *Worker {
 	w := Worker{
 		ctx:            ctx,
 		db:             db,
@@ -47,6 +48,7 @@ func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool
 		jobLock:        workitemLock.NewMemoryWorkItemLock(),
 		config:         config,
 		rconRetries:    rconRetries,
+		baseTopic:      baseTopic,
 	}
 	return &w
 }
@@ -216,7 +218,7 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 				Payload: j,
 			}
 
-			err = w.matchPublisher.Publish(messagebroker.TOPIC, &msg)
+			err = w.matchPublisher.Publish(w.baseTopic, &msg)
 			if err != nil {
 				log.Error().Err(err).Msg("Error publishing to messagebroker")
 				return err

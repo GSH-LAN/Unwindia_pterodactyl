@@ -9,6 +9,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill-pulsar/pkg/pulsar"
 	"github.com/gammazero/workerpool"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"os"
 	"os/signal"

@@ -2,7 +2,6 @@ package messagequeue
 
 import (
 	"context"
-	"fmt"
 	"github.com/GSH-LAN/Unwindia_common/src/go/messagebroker"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/environment"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -13,7 +12,6 @@ import (
 
 const (
 	SubscriberName = "UNWINDIA_PTERODACTYL"
-	topicBase      = "persistent://public/default/%s"
 )
 
 type Subscriber struct {
@@ -34,7 +32,7 @@ func NewSubscriber(ctx context.Context, env *environment.Environment, matchInfoC
 	}
 
 	consumer, err := client.Subscribe(pulsar.ConsumerOptions{
-		Topic:            fmt.Sprintf(topicBase, messagebroker.TOPIC),
+		Topic:            env.PulsarBaseTopic,
 		SubscriptionName: SubscriberName,
 		Type:             pulsar.Shared,
 	})
@@ -45,7 +43,7 @@ func NewSubscriber(ctx context.Context, env *environment.Environment, matchInfoC
 
 	subscriber := Subscriber{
 		mainContext:    ctx,
-		topic:          messagebroker.TOPIC,
+		topic:          env.PulsarBaseTopic,
 		pulsarClient:   client,
 		pulsarConsumer: consumer,
 		messageChan:    matchInfoChan,
