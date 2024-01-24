@@ -6,7 +6,7 @@ import (
 	"github.com/GSH-LAN/Unwindia_common/src/go/logger"
 	"github.com/GSH-LAN/Unwindia_common/src/go/messagebroker"
 	pulsarClient "github.com/apache/pulsar-client-go/pulsar"
-	envLoader "github.com/caarlos0/env/v6"
+	envLoader "github.com/caarlos0/env/v10"
 	"github.com/rs/zerolog/log"
 	"github.com/segmentio/ksuid"
 	"net/url"
@@ -76,6 +76,8 @@ func load() *Environment {
 	var pulsarAuth pulsarClient.Authentication
 
 	switch mbpulsarAuth {
+	case messagebroker.AUTH_TOKEN:
+		pulsarAuth = pulsarClient.NewAuthenticationToken(pulsarAuthParams["token"])
 	case messagebroker.AUTH_OAUTH2:
 		pulsarAuth = pulsarClient.NewAuthenticationOAuth2(pulsarAuthParams)
 	}

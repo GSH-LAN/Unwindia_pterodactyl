@@ -4,7 +4,7 @@ import (
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/database"
 	"github.com/alexliesenfeld/health"
 	"github.com/apache/pulsar-client-go/pulsar"
-	httpCheck "github.com/hellofresh/health-go/v4/checks/http"
+	httpCheck "github.com/hellofresh/health-go/v5/checks/http"
 	"net/http"
 	"time"
 )

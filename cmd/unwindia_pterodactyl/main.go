@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	_ "time/tzdata"
 )
 
 func main() {
@@ -44,7 +45,7 @@ func main() {
 			URL:            env.PulsarURL,
 			Authentication: env.PulsarAuth,
 		},
-		watermill.NewStdLoggerWithOut(log.Logger, true, false),
+		watermill.NewStdLoggerWithOut(log.Logger, zerolog.GlobalLevel() <= zerolog.DebugLevel, zerolog.GlobalLevel() == zerolog.TraceLevel),
 	)
 
 	srv, err := server.NewServer(mainContext, env, configClient, matchPublisher, wp)
