@@ -13,7 +13,6 @@ require (
 	github.com/alexliesenfeld/health v0.8.0
 	github.com/apache/pulsar-client-go v0.11.1
 	github.com/caarlos0/env/v10 v10.0.0
-	github.com/forewing/csgo-rcon v1.3.1-0.20220429151413-081f8216b783
 	github.com/gammazero/workerpool v1.1.3
 	github.com/gin-gonic/gin v1.9.1
 	github.com/hellofresh/health-go/v5 v5.5.2

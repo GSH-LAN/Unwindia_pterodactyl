@@ -13,7 +13,6 @@ import (
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/messagequeue"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/pterodactyl"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/router"
-	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/template"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
@@ -63,7 +62,7 @@ func NewServer(ctx context.Context, env *environment.Environment, cfgClient conf
 		return nil, err
 	}
 
-	jobHandler := jobs.NewWorker(ctx, dbClient, wp, pteroClient, matchPublisher, cfgClient, env.RconRetries, env.PulsarBaseTopic)
+	jobHandler := jobs.NewWorker(ctx, dbClient, wp, pteroClient, matchPublisher, cfgClient, env.PulsarBaseTopic)
 
 	srv := Server{
 		ctx:            ctx,
@@ -223,11 +222,7 @@ func (s *Server) setupRouter() {
 	// GinErrorHandler middleware for handle problem details error on gin
 	s.router.Use(func(c *gin.Context) {
 		c.Next()
-
 		for _, err := range c.Errors {
-
-			// add custom map problem details here...
-
 			if _, err := problem.ResolveProblemDetails(c.Writer, c.Request, err); err != nil {
 				log.Error().Err(err).Msg("gin error")
 			}
@@ -240,14 +235,9 @@ func (s *Server) setupRouter() {
 	//internal.GET("/health", gin.WrapF(handlers.NewJSONHandlerFunc(health.Health, nil)))
 	internal.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	//serverApi := s.router.Group("/api/v1/server")
-	//serverApi.POST("/")
-
 	v1Api := s.router.Group("/api/v1")
 	v1Api.POST("/jobs", s.handleCreateJob)
 	v1Api.POST("/preinstall/:game/:amount", s.handlePreinstall)
-
-	v1Api.GET("/match/:matchid/:template", s.handleMatchTemplate)
 }
 
 func (s *Server) handleCreateJob(ctx *gin.Context) {
@@ -320,41 +310,4 @@ func (s *Server) handlePreinstall(ctx *gin.Context) {
 	} else {
 		ctx.JSON(http.StatusCreated, gin.H{"servers": createdJobs})
 	}
-}
-
-func (s *Server) handleMatchTemplate(ctx *gin.Context) {
-	matchid := ctx.Param("matchid")
-	templateName := ctx.Param("template")
-
-	matchInfo, err := s.dbClient.GetMatchInfoForMatchId(s.ctx, matchid)
-	if err != nil {
-		log.Error().Err(err).Msg("error getting info for match")
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	templateText, ok := s.config.GetConfig().Templates[fmt.Sprintf("PTERODACTYL_%s.gohtml", templateName)]
-	if !ok {
-		log.Error().Str("template", templateName).Msg("template not found")
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Errorf("template %s not found", templateName),
-		})
-		return
-	}
-
-	parsedMatchTemplate, err := template.ParseTemplateForMatch(templateText, &matchInfo.MatchInfo)
-	if err != nil {
-		log.Error().Err(err).Msg("Error parsing template")
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-	log.Debug().Str("commentText", parsedMatchTemplate).Msg("parsed Template")
-
-	log.Info().Str("matchid", matchid).Str("template", templateName).Msg("creating template for match")
-
-	ctx.String(http.StatusOK, parsedMatchTemplate)
 }

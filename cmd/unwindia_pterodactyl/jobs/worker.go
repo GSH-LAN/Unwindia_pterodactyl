@@ -9,9 +9,7 @@ import (
 	"github.com/GSH-LAN/Unwindia_common/src/go/workitemLock"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/database"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/pterodactyl"
-	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/template"
 	"github.com/ThreeDotsLabs/watermill/message"
-	rcon "github.com/forewing/csgo-rcon"
 	"github.com/gammazero/workerpool"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/modern-go/reflect2"
@@ -33,11 +31,10 @@ type Worker struct {
 	semaphore      *semaphore.Weighted
 	jobLock        workitemLock.WorkItemLock
 	config         config.ConfigClient
-	rconRetries    int
 	baseTopic      string
 }
 
-func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient, rconRetries int, baseTopic string) *Worker {
+func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient, baseTopic string) *Worker {
 	w := Worker{
 		ctx:            ctx,
 		db:             db,
@@ -47,7 +44,6 @@ func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool
 		semaphore:      semaphore.NewWeighted(int64(1)),
 		jobLock:        workitemLock.NewMemoryWorkItemLock(),
 		config:         config,
-		rconRetries:    rconRetries,
 		baseTopic:      baseTopic,
 	}
 	return &w
@@ -176,33 +172,6 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 			log.Error().Err(err).Str("jobid", job.ID.String()).Int("server.id", server.ID).Msg("Error updating job")
 			return err
 		}
-
-		rconClient := rcon.New(job.MatchInfo.ServerAddress, servermgmtpass, time.Second*10)
-		go func() {
-			time.Sleep(gsTemplate.ServerReadyRconWaitTime.Duration)
-
-			for _, command := range gsTemplate.ServerReadyRconCommands {
-				for i := 0; i < w.rconRetries; i++ {
-					parsedCommand, err := template.ParseTemplateForMatch(command, &job.MatchInfo)
-					if err != nil {
-						log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", command).Msg("Error parsing rcon command template")
-						continue
-					}
-
-					_, err = rconClient.Execute(parsedCommand)
-					if err != nil {
-						log.Error().Err(err).Str("jobid", job.ID.String()).Str("command", parsedCommand).Str("address", job.MatchInfo.ServerAddress).Msg("Error executing rcon command")
-						continue
-					}
-
-					log.Debug().Str("command", parsedCommand).Msg("Successfully executed command")
-					time.Sleep(time.Second)
-					break
-				}
-			}
-		}()
-
-		// We now need to publish to message queue
 
 		msg := messagebroker.Message{
 			Type:    messagebroker.MessageTypeUpdated,
