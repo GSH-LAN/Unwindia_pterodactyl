@@ -32,8 +32,6 @@ type environment struct {
 	PteroClientApiURL        url.URL       `env:"PTERODACTYL_CLIENT_API_URL,notEmpty"`
 	PteroClientApiToken      string        `env:"PTERODACTYL_CLIENT_API_TOKEN,notEmpty"`
 	PteroFetchInterval       time.Duration `env:"PTERODACTYL_FETCH_INTERVAL" envDefault:"15s"`
-
-	RconRetries int `env:"RCON_RETRIES" envDefault:"10" envDescription:"How often to retry"`
 }
 
 // Environment holds all environment configuration with more advanced typing and validation
