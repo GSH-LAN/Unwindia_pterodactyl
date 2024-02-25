@@ -16,6 +16,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/meysamhadeli/problem-details"
 	"github.com/mitchellh/mapstructure"
 	"github.com/parkervcp/crocgodyl"
@@ -42,6 +43,7 @@ type Server struct {
 	stop           chan struct{}
 	router         *gin.Engine
 	pteroClient    pterodactyl.Client
+	baseTopic      string
 }
 
 func NewServer(ctx context.Context, env *environment.Environment, cfgClient config.ConfigClient, matchPublisher message.Publisher, wp *workerpool.WorkerPool) (*Server, error) {
@@ -77,6 +79,7 @@ func NewServer(ctx context.Context, env *environment.Environment, cfgClient conf
 		router:         router.DefaultRouter(),
 		pteroClient:    pteroClient,
 		matchPublisher: matchPublisher,
+		baseTopic:      env.PulsarBaseTopic,
 	}
 
 	go func() {
@@ -238,6 +241,8 @@ func (s *Server) setupRouter() {
 	v1Api := s.router.Group("/api/v1")
 	v1Api.POST("/jobs", s.handleCreateJob)
 	v1Api.POST("/preinstall/:game/:amount", s.handlePreinstall)
+	// TODO: remove this, it's just to generate server ready messages
+	v1Api.POST("/setready/:id", s.handleSetReady)
 }
 
 func (s *Server) handleCreateJob(ctx *gin.Context) {
@@ -309,5 +314,40 @@ func (s *Server) handlePreinstall(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": batchError.Error()})
 	} else {
 		ctx.JSON(http.StatusCreated, gin.H{"servers": createdJobs})
+	}
+}
+
+// handleSetReady re-generates the server ready event for generated servers
+func (s *Server) handleSetReady(ctx *gin.Context) {
+	// get id by param
+	matchId := ctx.Param("id")
+
+	log.Info().Str("id", matchId).Msg("setting match ready")
+
+	db := s.dbClient
+	// get match by id
+	matchInfo, err := db.GetMatchInfo(s.ctx, matchId)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "match not found"})
+		return
+	}
+
+	msg := messagebroker.Message{
+		Type:    messagebroker.MessageTypeUpdated,
+		SubType: messagebroker.UNWINDIA_MATCH_SERVER_READY.String(),
+		Data:    &matchInfo,
+	}
+
+	if j, err := jsoniter.Marshal(msg); err != nil {
+		log.Warn().Err(err).Msg("Error while marshalling message")
+	} else {
+		msg := message.Message{
+			Payload: j,
+		}
+
+		err = s.matchPublisher.Publish(s.baseTopic, &msg)
+		if err != nil {
+			log.Error().Err(err).Msg("Error publishing to messagebroker")
+		}
 	}
 }
