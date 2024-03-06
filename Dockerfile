@@ -1,4 +1,4 @@
-FROM golang:1.21.5-alpine AS build-env
+FROM golang:1.21.7-alpine AS build-env
 ADD . /app
 WORKDIR /app
 ARG TARGETOS

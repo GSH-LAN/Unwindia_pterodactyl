@@ -335,7 +335,7 @@ func (s *Server) handleSetReady(ctx *gin.Context) {
 	msg := messagebroker.Message{
 		Type:    messagebroker.MessageTypeUpdated,
 		SubType: messagebroker.UNWINDIA_MATCH_SERVER_READY.String(),
-		Data:    &matchInfo,
+		Data:    &matchInfo.MatchInfo,
 	}
 
 	if j, err := jsoniter.Marshal(msg); err != nil {

@@ -11,3 +11,12 @@ This service provides an API which saves jobs into it's internal database and cr
 
 # THIS SERVICE IS A MESS AND JUST FULFILLS FIRST REQUIREMENTS - THIS SHOULD BE REWRITTEN
 
+# Missing Features
+* obtain steam gameserver token through [gameserver-token-api](https://github.com/gsh-lan/steam-gameserver-token-api)
+* add gameserver "slug" to server name and add check for gameserver config matching and deletion & auto-recreation of server
+* auto install server when not enough standby servers are available
+* notifications
+  * not enough standby servers are available
+  * no more servers can be installed
+  * server installation failed
+  * 

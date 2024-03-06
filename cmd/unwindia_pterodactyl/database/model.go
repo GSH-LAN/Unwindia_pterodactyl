@@ -22,21 +22,6 @@ func (*MatchInfo) CollectionName() string {
 	return "pterodactyl_matchinfo"
 }
 
-type ServerStatus struct {
-	mgm.DefaultModel   `bson:",inline"`
-	MatchId            string `json:"matchId" bson:"matchId,omitempty"`
-	ServerId           string `json:"serverId" bson:"serverId,omitempty"`
-	ServerName         string
-	ServerIp           string
-	ServerPort         int
-	ServerPassword     string
-	ServerMgmtPassword string
-}
-
-func (*ServerStatus) CollectionName() string {
-	return "pterodactyl_serverstatus"
-}
-
 type Job struct {
 	mgm.DefaultModel `bson:",inline"`
 	Action           Action

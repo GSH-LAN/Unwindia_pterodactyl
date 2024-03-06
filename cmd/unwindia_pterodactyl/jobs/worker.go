@@ -70,21 +70,12 @@ func (w *Worker) process() {
 	}
 	defer w.semaphore.Release(1)
 
-	existingJobFilter := bson.M{"status": bson.M{"$nin": []database.JobStatus{database.JobStatusNew, database.JobStatusFinished}}}
-	existingJobs, err := w.db.List(w.ctx, existingJobFilter)
-	if err != nil {
-		log.Err(err).Msg("error retrieving new jobs from database")
-		return
-	}
-
 	newJobFilter := bson.M{"status": database.JobStatusNew}
 	newJobs, err := w.db.List(w.ctx, newJobFilter)
 	if err != nil {
 		log.Err(err).Msg("error retrieving new jobs from database")
 		return
 	}
-
-	log.Trace().Interface("jobs", existingJobs).Msg("retrieved existing jobs")
 	log.Trace().Interface("jobs", newJobs).Msg("retrieved new jobs")
 
 	for _, job := range newJobs {
