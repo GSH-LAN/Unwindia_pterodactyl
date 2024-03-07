@@ -205,20 +205,6 @@ func (s *Server) messageHandler(message *messagebroker.Message) {
 
 		log.Debug().Str("jobId", jobId.String()).Str("id", match.Id).Msg("Created delete job for match")
 	}
-
-	matchEntry := database.MatchInfo{
-		Id:        match.Id,
-		MatchInfo: match,
-		MatchId:   matchId,
-		JobIds:    jobIds,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	err = s.dbClient.UpsertMatchInfo(s.ctx, &matchEntry)
-	if err != nil {
-		log.Error().Err(err).Interface("message", *message)
-	}
 }
 
 func (s *Server) setupRouter() {
@@ -242,7 +228,7 @@ func (s *Server) setupRouter() {
 	v1Api.POST("/jobs", s.handleCreateJob)
 	v1Api.POST("/preinstall/:game/:amount", s.handlePreinstall)
 	// TODO: remove this, it's just to generate server ready messages
-	v1Api.POST("/setready/:id", s.handleSetReady)
+	v1Api.POST("/setready/:id", s.handleReSend)
 }
 
 func (s *Server) handleCreateJob(ctx *gin.Context) {
@@ -317,8 +303,8 @@ func (s *Server) handlePreinstall(ctx *gin.Context) {
 	}
 }
 
-// handleSetReady re-generates the server ready event for generated servers
-func (s *Server) handleSetReady(ctx *gin.Context) {
+// handleReSend re-generates the server ready event for generated servers
+func (s *Server) handleReSend(ctx *gin.Context) {
 	// get id by param
 	matchId := ctx.Param("id")
 
@@ -326,7 +312,7 @@ func (s *Server) handleSetReady(ctx *gin.Context) {
 
 	db := s.dbClient
 	// get match by id
-	matchInfo, err := db.GetMatchInfo(s.ctx, matchId)
+	lastJob, err := db.GetLastJobForMatchId(s.ctx, matchId, database.ActionCreate)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "match not found"})
 		return
@@ -335,7 +321,7 @@ func (s *Server) handleSetReady(ctx *gin.Context) {
 	msg := messagebroker.Message{
 		Type:    messagebroker.MessageTypeUpdated,
 		SubType: messagebroker.UNWINDIA_MATCH_SERVER_READY.String(),
-		Data:    &matchInfo.MatchInfo,
+		Data:    &lastJob.MatchInfo,
 	}
 
 	if j, err := jsoniter.Marshal(msg); err != nil {

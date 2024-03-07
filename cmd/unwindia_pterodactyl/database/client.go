@@ -20,17 +20,11 @@ const (
 
 // DatabaseClient is the client-interface for the main mongodb database
 type DatabaseClient interface {
-	// UpsertJob creates or updates an DotlanForumStatus entry
 	CreateJob(ctx context.Context, entry *Job) (primitive.ObjectID, error)
 	UpdateJob(ctx context.Context, entry *Job) (primitive.ObjectID, error)
-	UpsertMatchInfo(ctx context.Context, entry *MatchInfo) error
 	// Get returns an existing DotlanForumStatus by the given id. Id is the id of the match within dotlan (tcontest.tcid)
 	GetJob(ctx context.Context, id string) (*Job, error)
-	// List returns all existing DotlanForumStatus entries in a Result chan
-	//List(ctx context.Context, filter interface{}, resultChan chan Result)
 	List(ctx context.Context, filter interface{}) ([]*Job, error)
-	GetMatchInfo(ctx context.Context, id string) (*MatchInfo, error)
-	GetMatchInfoForMatchId(ctx context.Context, id string) (*MatchInfo, error)
 	GetLastJobForMatchId(ctx context.Context, id string, action Action) (*Job, error)
 }
 
@@ -91,19 +85,6 @@ func (d DatabaseClientImpl) UpdateJob(ctx context.Context, entry *Job) (primitiv
 	return entry.ID, err
 }
 
-func (d DatabaseClientImpl) UpsertMatchInfo(ctx context.Context, entry *MatchInfo) error {
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	defer cancel()
-
-	filter := bson.D{{"_id", entry.Id}}
-
-	updateResult, err := d.matchCollection.ReplaceOne(ctx, filter, entry, options.Replace().SetUpsert(true))
-
-	log.Debug().Interface("updateResult", *updateResult).Msg("Update result")
-
-	return err
-}
-
 func (d DatabaseClientImpl) GetJob(ctx context.Context, id string) (*Job, error) {
 	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
 	defer cancel()
@@ -151,46 +132,6 @@ func (d DatabaseClientImpl) List(ctx context.Context, filter interface{}) ([]*Jo
 	}
 
 	return jobs, nil
-}
-
-func (d DatabaseClientImpl) GetMatchInfo(ctx context.Context, id string) (*MatchInfo, error) {
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	defer cancel()
-
-	filter := bson.D{{"_id", id}}
-	result := d.matchCollection.FindOne(ctx, filter)
-	if result.Err() != nil {
-		return nil, result.Err()
-	}
-
-	var entry MatchInfo
-	err := result.Decode(&entry)
-	if err != nil {
-		return nil, err
-	}
-
-	return &entry, nil
-}
-
-func (d DatabaseClientImpl) GetMatchInfoForMatchId(ctx context.Context, id string) (*MatchInfo, error) {
-	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-	defer cancel()
-
-	filter := bson.D{{"matchId", id}}
-	opts := options.FindOne().SetSort(bson.D{{"updatedAt", 1}})
-
-	result := d.matchCollection.FindOne(ctx, filter, opts)
-	if result.Err() != nil {
-		return nil, result.Err()
-	}
-
-	var entry MatchInfo
-	err := result.Decode(&entry)
-	if err != nil {
-		return nil, err
-	}
-
-	return &entry, nil
 }
 
 func (d DatabaseClientImpl) GetLastJobForMatchId(ctx context.Context, id string, action Action) (*Job, error) {
