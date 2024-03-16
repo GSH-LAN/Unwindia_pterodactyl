@@ -8,7 +8,6 @@ import (
 	pulsarClient "github.com/apache/pulsar-client-go/pulsar"
 	envLoader "github.com/caarlos0/env/v10"
 	"github.com/rs/zerolog/log"
-	"github.com/segmentio/ksuid"
 	"net/url"
 	"runtime"
 	"time"
@@ -22,8 +21,6 @@ var (
 type environment struct {
 	environment2.BaseEnvironment
 
-	ServiceUid string
-
 	JobsProcessInterval time.Duration `env:"JOBS_PROCESS_INTERVAL" envDefault:"10s"`
 	UseMatchServiceId   bool          `env:"USE_MATCHSERVICE_ID" envDefault:false`
 
@@ -32,6 +29,9 @@ type environment struct {
 	PteroClientApiURL        url.URL       `env:"PTERODACTYL_CLIENT_API_URL,notEmpty"`
 	PteroClientApiToken      string        `env:"PTERODACTYL_CLIENT_API_TOKEN,notEmpty"`
 	PteroFetchInterval       time.Duration `env:"PTERODACTYL_FETCH_INTERVAL" envDefault:"15s"`
+
+	SteamGsTokenApiURL  url.URL `env:"STEAM_GS_TOKEN_API_URL,notEmpty"`
+	SteamGsTokenApiAuth string  `env:"STEAM_GS_TOKEN_API_TOKEN" envDefault:""`
 }
 
 // Environment holds all environment configuration with more advanced typing and validation
@@ -53,10 +53,6 @@ func load() *Environment {
 
 	if e.WorkerCount <= 0 {
 		e.WorkerCount = runtime.NumCPU() + e.WorkerCount
-	}
-
-	if e.ServiceUid == "" {
-		e.ServiceUid = ksuid.New().String()
 	}
 
 	var pulsarAuthParams = make(map[string]string)

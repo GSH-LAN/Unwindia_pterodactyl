@@ -144,8 +144,16 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 		var address string
 		var port string
 
-		pass, _ = server.StartupDescriptor().Environment["SRVPASS"].(string)
-		servermgmtpass, _ = server.StartupDescriptor().Environment["RCONPASS"].(string)
+		serverPassEnv, ok := gsTemplate.EnvironmentMapping["ServerPassword"]
+		if !ok {
+			serverPassEnv = "SRVPASS"
+		}
+		serverMgmtPassEnv, ok := gsTemplate.EnvironmentMapping[serverPassEnv]
+		if !ok {
+			serverMgmtPassEnv = "RCONPASS"
+		}
+		pass, _ = server.StartupDescriptor().Environment[serverMgmtPassEnv].(string)
+		servermgmtpass, _ = server.StartupDescriptor().Environment[serverMgmtPassEnv].(string)
 
 		allocation, err := w.pteroClient.GetNodeAllocation(server.Node, server.Allocation)
 		if err != nil {

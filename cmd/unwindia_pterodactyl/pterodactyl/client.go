@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/GSH-LAN/Unwindia_common/src/go/config"
 	"github.com/gammazero/workerpool"
+	"github.com/google/uuid"
 	"github.com/parkervcp/crocgodyl"
 	"github.com/rs/zerolog/log"
-	"github.com/segmentio/ksuid"
 	"golang.org/x/sync/semaphore"
 	"net/url"
 	"sync"
@@ -154,7 +154,7 @@ func (c *ClientImpl) fetchPteroStuff() {
 	c.pteroServers = serverLockList
 }
 
-func (c *ClientImpl) checkInstallStateAndSusped() {
+func (c *ClientImpl) checkInstallStateAndSuspend() {
 	c.serverLock.Lock()
 	defer c.serverLock.Unlock()
 
@@ -172,11 +172,16 @@ func (c *ClientImpl) checkInstallStateAndSusped() {
 }
 
 func (c *ClientImpl) suspendServer(server *crocgodyl.AppServer) (*crocgodyl.AppServer, error) {
+	uuidv7, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
 	data := server.DetailsDescriptor()
 	data.ExternalID = ""
-	data.Name = ksuid.New().String()
+	data.Name = uuidv7.String()
 	data.Description = ""
-	server, err := c.applicationClient.UpdateServerDetails(server.ID, *data)
+	server, err = c.applicationClient.UpdateServerDetails(server.ID, *data)
 	if err != nil {
 		return nil, err
 	}
@@ -195,17 +200,21 @@ func (c *ClientImpl) startBackgroundFetching(interval time.Duration) {
 		select {
 		case <-ticker.C:
 			c.fetchPteroStuff()
-			c.checkInstallStateAndSusped()
+			c.checkInstallStateAndSuspend()
 		}
 	}
 }
 
 func (c *ClientImpl) PreinstallServer(gsTemplate *config.GamerServerConfigTemplate) (*crocgodyl.AppServer, error) {
 	// TODO: check if gsTemplate.DefaultStartup command is empty and if so, fetch the egg's default command
+	uuidv7, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
 
 	createServerDescriptor := crocgodyl.CreateServerDescriptor{
 		ExternalID:    "",
-		Name:          ksuid.New().String(),
+		Name:          uuidv7.String(),
 		Description:   ServerPreInstallDescription,
 		User:          gsTemplate.UserId,
 		Egg:           gsTemplate.EggId,
