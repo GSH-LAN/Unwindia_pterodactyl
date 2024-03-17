@@ -7,6 +7,7 @@ import (
 	"github.com/GSH-LAN/Unwindia_common/src/go/config"
 	"github.com/GSH-LAN/Unwindia_common/src/go/matchservice"
 	"github.com/GSH-LAN/Unwindia_common/src/go/messagebroker"
+	steam_api_token "github.com/GSH-LAN/Unwindia_common/src/go/steam-api-token"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/database"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/environment"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/jobs"
@@ -64,7 +65,9 @@ func NewServer(ctx context.Context, env *environment.Environment, cfgClient conf
 		return nil, err
 	}
 
-	jobHandler := jobs.NewWorker(ctx, dbClient, wp, pteroClient, matchPublisher, cfgClient, env.PulsarBaseTopic)
+	steamApiClient := steam_api_token.NewClient(&env.SteamGsTokenApiURL, env.SteamGsTokenApiAuth)
+
+	jobHandler := jobs.NewWorker(ctx, dbClient, wp, pteroClient, matchPublisher, cfgClient, env.PulsarBaseTopic, steamApiClient)
 
 	srv := Server{
 		ctx:            ctx,

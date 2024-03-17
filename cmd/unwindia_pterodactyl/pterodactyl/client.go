@@ -9,6 +9,7 @@ import (
 	"github.com/parkervcp/crocgodyl"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/semaphore"
+	"log/slog"
 	"net/url"
 	"sync"
 	"time"
@@ -91,10 +92,15 @@ func (c *ClientImpl) ReuseExistingServer(serverId int, serverIdentifier string, 
 		return err
 	}
 
-	//_, err = c.applicationClient.UpdateServerStartup(serverId, serverStartup)
-	//if err != nil {
-	//	return err
-	//}
+	//convert all serverStartup.Environment values to string
+	for k, v := range serverStartup.Environment {
+		serverStartup.Environment[k] = fmt.Sprintf("%v", v)
+	}
+
+	_, err = c.applicationClient.UpdateServerStartup(serverId, serverStartup)
+	if err != nil {
+		slog.Error("Error updating server startup", "Error", err)
+	}
 
 	err = c.applicationClient.UnsuspendServer(serverId)
 	if err != nil {

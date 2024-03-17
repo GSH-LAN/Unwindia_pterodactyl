@@ -2,12 +2,12 @@ module github.com/GSH-LAN/Unwindia_pterodactyl
 
 go 1.21
 
-replace github.com/ThreeDotsLabs/watermill-pulsar => github.com/MaxW1337/watermill-pulsar v0.0.0-20221124180151-6e4a9166181d
+replace github.com/ThreeDotsLabs/watermill-pulsar => github.com/MaxW1337/watermill-pulsar v0.0.0-20240307192250-64cbfbe0bda8
 
 replace github.com/parkervcp/crocgodyl => github.com/GSH-LAN/crocgodyl v0.1.1-0.20230331082235-e214fc410bc1
 
 require (
-	github.com/GSH-LAN/Unwindia_common v0.0.15
+	github.com/GSH-LAN/Unwindia_common v0.0.16
 	github.com/ThreeDotsLabs/watermill v1.3.5
 	github.com/ThreeDotsLabs/watermill-pulsar v0.0.0-00010101000000-000000000000
 	github.com/alexliesenfeld/health v0.8.0
@@ -46,7 +46,6 @@ require (
 	github.com/danieljoos/wincred v1.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.6.0 // indirect
-	github.com/frankban/quicktest v1.14.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gammazero/deque v0.2.1 // indirect

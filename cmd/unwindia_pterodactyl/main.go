@@ -7,6 +7,7 @@ import (
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/server"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-pulsar/pkg/pulsar"
+	pulsarClient "github.com/apache/pulsar-client-go/pulsar"
 	"github.com/gammazero/workerpool"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -41,11 +42,18 @@ func main() {
 
 	wp := workerpool.New(env.WorkerCount)
 
-	matchPublisher, err := pulsar.NewPublisher(
-		pulsar.PublisherConfig{
-			URL:            env.PulsarURL,
-			Authentication: env.PulsarAuth,
-		},
+	pulsarClientInstance, err := pulsarClient.NewClient(pulsarClient.ClientOptions{
+		URL:            env.PulsarURL,
+		Authentication: env.PulsarAuth,
+	})
+	if err != nil {
+		cancel()
+		log.Fatal().Err(err).Msg("Error creating pulsar client")
+
+	}
+
+	matchPublisher, err := pulsar.NewPublisherWithPulsarClient(
+		pulsarClientInstance,
 		watermill.NewStdLoggerWithOut(log.Logger, zerolog.GlobalLevel() <= zerolog.DebugLevel, zerolog.GlobalLevel() == zerolog.TraceLevel),
 	)
 

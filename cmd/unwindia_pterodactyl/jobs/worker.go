@@ -2,10 +2,13 @@ package jobs
 
 import (
 	"context"
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"github.com/GSH-LAN/Unwindia_common/src/go/config"
+	"github.com/GSH-LAN/Unwindia_common/src/go/matchservice"
 	"github.com/GSH-LAN/Unwindia_common/src/go/messagebroker"
+	steam_api_token "github.com/GSH-LAN/Unwindia_common/src/go/steam-api-token"
 	"github.com/GSH-LAN/Unwindia_common/src/go/workitemLock"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/database"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/pterodactyl"
@@ -32,9 +35,17 @@ type Worker struct {
 	jobLock        workitemLock.WorkItemLock
 	config         config.ConfigClient
 	baseTopic      string
+	steamApiClient *steam_api_token.Client
+	tokenCache     map[string]string
 }
 
-func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient, baseTopic string) *Worker {
+const (
+	mappedServerPasswordEnv     = "ServerPassword"
+	mappedServerMgmtPasswordEnv = "ServerPasswordMgmt"
+	mappedGameServerToken       = "GameServerToken"
+)
+
+func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient, baseTopic string, steamApiClient *steam_api_token.Client) *Worker {
 	w := Worker{
 		ctx:            ctx,
 		db:             db,
@@ -45,6 +56,8 @@ func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool
 		jobLock:        workitemLock.NewMemoryWorkItemLock(),
 		config:         config,
 		baseTopic:      baseTopic,
+		steamApiClient: steamApiClient,
+		tokenCache:     make(map[string]string),
 	}
 	return &w
 }
@@ -122,11 +135,19 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 			Description: fmt.Sprintf(pterodactyl.ServerUseDescription, job.MatchId),
 		}
 		startup := crocgodyl.ServerStartupDescriptor{
-			Startup:     server.StartupDescriptor().Startup,
+			Startup:     gsTemplate.DefaultStartup,
 			Environment: gsTemplate.Environment,
-			Egg:         server.StartupDescriptor().Egg,
+			Egg:         gsTemplate.EggId,
 			Image:       gsTemplate.DefaultDockerImage,
 			SkipScripts: server.StartupDescriptor().SkipScripts,
+		}
+
+		if gsTokenMapping, ok := gsTemplate.EnvironmentMapping[mappedGameServerToken]; ok {
+			token, err := w.GetGameServerTokenForMatch(gsTemplate.SteamApiTokenAppId, job.MatchInfo)
+			if err != nil {
+				return err
+			}
+			startup.Environment[gsTokenMapping] = token
 		}
 
 		serverIdentifier := server.Identifier
@@ -144,13 +165,13 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 		var address string
 		var port string
 
-		serverPassEnv, ok := gsTemplate.EnvironmentMapping["ServerPassword"]
+		serverPassEnv, ok := gsTemplate.EnvironmentMapping[mappedServerPasswordEnv]
 		if !ok {
-			serverPassEnv = "SRVPASS"
+			serverPassEnv = mappedServerPasswordEnv
 		}
-		serverMgmtPassEnv, ok := gsTemplate.EnvironmentMapping["ServerPasswordMgmt"]
+		serverMgmtPassEnv, ok := gsTemplate.EnvironmentMapping[mappedServerMgmtPasswordEnv]
 		if !ok {
-			serverMgmtPassEnv = "RCONPASS"
+			serverMgmtPassEnv = mappedServerMgmtPasswordEnv
 		}
 		pass, _ = server.StartupDescriptor().Environment[serverPassEnv].(string)
 		servermgmtpass, _ = server.StartupDescriptor().Environment[serverMgmtPassEnv].(string)
@@ -238,4 +259,23 @@ func (w *Worker) unlockJob(id primitive.ObjectID) bool {
 	}
 	log.Trace().Str("contest", id.String()).Msg("Unlocked contest")
 	return true
+}
+
+// GetGameServerToken fetches a Steam api token for a gameserver
+func (w *Worker) GetGameServerTokenForMatch(appId int, info matchservice.MatchInfo) (string, error) {
+	// generate serverId based on ingo.ServerAddress md5 hash
+	serverId := fmt.Sprintf("%x", md5.Sum([]byte(info.ServerAddress)))
+
+	// check if token is already in cache
+	if token, ok := w.tokenCache[serverId]; ok {
+		return token, nil
+	}
+
+	// fetch token from steam api
+	token, err := w.steamApiClient.GetSteamApiToken(w.ctx, appId, serverId)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }

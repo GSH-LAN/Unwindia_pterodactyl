@@ -30,8 +30,8 @@ type environment struct {
 	PteroClientApiToken      string        `env:"PTERODACTYL_CLIENT_API_TOKEN,notEmpty"`
 	PteroFetchInterval       time.Duration `env:"PTERODACTYL_FETCH_INTERVAL" envDefault:"15s"`
 
-	SteamGsTokenApiURL  url.URL `env:"STEAM_GS_TOKEN_API_URL,notEmpty"`
-	SteamGsTokenApiAuth string  `env:"STEAM_GS_TOKEN_API_TOKEN" envDefault:""`
+	SteamGsTokenApiURL  url.URL `env:"STEAM_GS_TOKEN_API_URL"`
+	SteamGsTokenApiAuth string  `env:"STEAM_GS_TOKEN_API_TOKEN"`
 }
 
 // Environment holds all environment configuration with more advanced typing and validation
