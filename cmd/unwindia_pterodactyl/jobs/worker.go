@@ -43,6 +43,7 @@ const (
 	mappedServerPasswordEnv     = "ServerPassword"
 	mappedServerMgmtPasswordEnv = "ServerPasswordMgmt"
 	mappedGameServerToken       = "GameServerToken"
+	mappedServerTvAddressPort   = "ServerTvAddressPort"
 )
 
 func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool.WorkerPool, pteroClient pterodactyl.Client, matchPublisher message.Publisher, config config.ConfigClient, baseTopic string, steamApiClient *steam_api_token.Client) *Worker {
@@ -111,6 +112,9 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 
 	switch job.Action {
 	case database.ActionCreate:
+		var address string
+		var port string
+
 		gsTemplate, err := w.config.GetGameServerTemplateForMatch(job.MatchInfo)
 		if err != nil {
 			return err
@@ -127,6 +131,14 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 			}
 			log.Info().Interface("server", server).Str("jobId", job.ID.String()).Msg("got server for job")
 		}
+
+		allocation, err := w.pteroClient.GetNodeAllocation(server.Node, server.Allocation)
+		if err != nil {
+			return err
+		}
+
+		address = allocation.IP
+		port = strconv.Itoa(int(allocation.Port))
 
 		details := crocgodyl.ServerDetailsDescriptor{
 			ExternalID:  job.MatchId,
@@ -145,9 +157,13 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 		if gsTokenMapping, ok := gsTemplate.EnvironmentMapping[mappedGameServerToken]; ok {
 			token, err := w.GetGameServerTokenForMatch(gsTemplate.SteamApiTokenAppId, job.MatchInfo)
 			if err != nil {
-				return err
+				log.Error().Err(err).Msg("Error fetching GameServerTokenForMatch")
 			}
 			startup.Environment[gsTokenMapping] = token
+		}
+
+		if gsTvPortMapping, ok := gsTemplate.EnvironmentMapping[mappedServerTvAddressPort]; ok {
+			startup.Environment[gsTvPortMapping] = int(allocation.Port) + gsTemplate.TvPortOffset
 		}
 
 		serverIdentifier := server.Identifier
@@ -162,27 +178,19 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 
 		var pass string
 		var servermgmtpass string
-		var address string
-		var port string
 
 		serverPassEnv, ok := gsTemplate.EnvironmentMapping[mappedServerPasswordEnv]
 		if !ok {
 			serverPassEnv = mappedServerPasswordEnv
 		}
+
 		serverMgmtPassEnv, ok := gsTemplate.EnvironmentMapping[mappedServerMgmtPasswordEnv]
 		if !ok {
 			serverMgmtPassEnv = mappedServerMgmtPasswordEnv
 		}
+
 		pass, _ = server.StartupDescriptor().Environment[serverPassEnv].(string)
 		servermgmtpass, _ = server.StartupDescriptor().Environment[serverMgmtPassEnv].(string)
-
-		allocation, err := w.pteroClient.GetNodeAllocation(server.Node, server.Allocation)
-		if err != nil {
-			return err
-		}
-
-		address = allocation.IP
-		port = strconv.Itoa(int(allocation.Port))
 
 		job.MatchInfo.ServerPassword = pass
 		job.MatchInfo.ServerAddress = fmt.Sprintf("%s:%s", address, port)

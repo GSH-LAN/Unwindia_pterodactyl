@@ -117,6 +117,11 @@ func (c *ClientImpl) ReuseExistingServer(serverId int, serverIdentifier string, 
 	return nil
 }
 
+func (c *ClientImpl) UpdateStartup(serverId int, serverStartup crocgodyl.ServerStartupDescriptor) error {
+	_, err := c.applicationClient.UpdateServerStartup(serverId, serverStartup)
+	return err
+}
+
 func (c *ClientImpl) CreateNewServer() (*crocgodyl.AppServer, error) {
 	//TODO implement me
 	panic("implement me")
