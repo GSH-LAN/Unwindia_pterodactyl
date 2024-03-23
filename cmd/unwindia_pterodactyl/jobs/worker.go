@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"context"
-	"crypto/md5"
 	"errors"
 	"fmt"
 	"github.com/GSH-LAN/Unwindia_common/src/go/config"
@@ -13,6 +12,7 @@ import (
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/database"
 	"github.com/GSH-LAN/Unwindia_pterodactyl/cmd/unwindia_pterodactyl/pterodactyl"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/dvsekhvalnov/jose2go/base64url"
 	"github.com/gammazero/workerpool"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/modern-go/reflect2"
@@ -271,8 +271,8 @@ func (w *Worker) unlockJob(id primitive.ObjectID) bool {
 
 // GetGameServerToken fetches a Steam api token for a gameserver
 func (w *Worker) GetGameServerTokenForMatch(appId int, info matchservice.MatchInfo) (string, error) {
-	// generate serverId based on ingo.ServerAddress md5 hash
-	serverId := fmt.Sprintf("%x", md5.Sum([]byte(info.ServerAddress)))
+	// generate serverId based on info.ServerAddress base64
+	serverId := fmt.Sprintf("%x", base64url.Encode([]byte(info.ServerAddress)))
 
 	// check if token is already in cache
 	if token, ok := w.tokenCache[serverId]; ok {
