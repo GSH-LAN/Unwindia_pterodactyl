@@ -137,6 +137,7 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 
 		address = allocation.IP
 		port = strconv.Itoa(int(allocation.Port))
+		job.MatchInfo.ServerAddress = fmt.Sprintf("%s:%s", address, port)
 
 		details := crocgodyl.ServerDetailsDescriptor{
 			ExternalID:  job.MatchId,
@@ -191,7 +192,7 @@ func (w *Worker) processJob(ctx context.Context, job *database.Job) error {
 		servermgmtpass, _ = server.StartupDescriptor().Environment[serverMgmtPassEnv].(string)
 
 		job.MatchInfo.ServerPassword = pass
-		job.MatchInfo.ServerAddress = fmt.Sprintf("%s:%s", address, port)
+
 		job.MatchInfo.ServerPasswordMgmt = servermgmtpass
 		_, err = w.db.UpdateJob(ctx, job)
 		if err != nil {
