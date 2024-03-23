@@ -36,7 +36,6 @@ type Worker struct {
 	config         config.ConfigClient
 	baseTopic      string
 	steamApiClient *steam_api_token.Client
-	tokenCache     map[string]string
 }
 
 const (
@@ -58,7 +57,6 @@ func NewWorker(ctx context.Context, db database.DatabaseClient, pool *workerpool
 		config:         config,
 		baseTopic:      baseTopic,
 		steamApiClient: steamApiClient,
-		tokenCache:     make(map[string]string),
 	}
 	return &w
 }
@@ -273,11 +271,6 @@ func (w *Worker) unlockJob(id primitive.ObjectID) bool {
 func (w *Worker) GetGameServerTokenForMatch(appId int, info matchservice.MatchInfo) (string, error) {
 	// generate serverId based on info.ServerAddress base64
 	serverId := base64url.Encode([]byte(info.ServerAddress))
-
-	// check if token is already in cache
-	if token, ok := w.tokenCache[serverId]; ok {
-		return token, nil
-	}
 
 	// fetch token from steam api
 	token, err := w.steamApiClient.GetSteamApiToken(w.ctx, appId, serverId)
