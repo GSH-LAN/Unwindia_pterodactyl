@@ -272,7 +272,7 @@ func (w *Worker) unlockJob(id primitive.ObjectID) bool {
 // GetGameServerToken fetches a Steam api token for a gameserver
 func (w *Worker) GetGameServerTokenForMatch(appId int, info matchservice.MatchInfo) (string, error) {
 	// generate serverId based on info.ServerAddress base64
-	serverId := fmt.Sprintf("%x", base64url.Encode([]byte(info.ServerAddress)))
+	serverId := base64url.Encode([]byte(info.ServerAddress))
 
 	// check if token is already in cache
 	if token, ok := w.tokenCache[serverId]; ok {
